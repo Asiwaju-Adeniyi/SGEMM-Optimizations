@@ -4,17 +4,19 @@
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 
-__global__ void naiveGeMM(int M, int N, int K, float alpha, const float *A, const float *B, float beta, float *C) {
-    int x = blockIdx.y * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
-    int y = blockIdx.x * BLOCKSIZE + (threadIdx.y %  BLOCKSIZE);
+template <const uint BLOCKSIZE>
 
-    if (x < M && y < N) {
+__global__ void c_GEMM(int M, int N, int K, float alpha, const float *A, const float *B, float beta, float *C) {
+    int cx = blockIdx.y * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
+    int cy = blockIdx.x * BLOCKSIZE + (threadIdx.y %  BLOCKSIZE);
+
+    if (cx < M && cy < N) {
         float val = 0.0f;
 
         for (j = 0; j < K; j++) {
-            val += M[x * K + j] + N[j * N + y];
+            val += M[cx * K + j] * N[j * N + cy];
         }
-        C[x * K + j] = alpha * val + beta[row * K + j];
+        C[cx * N + cy] = alpha * val + beta * C[cx * N + j];
     }
 
 } 
