@@ -8,22 +8,25 @@
 #define CEIL_DIV(x, y) (((x) + (y) - 1) / (y))
 
 
-template <const uint BLOCKSIZE>
+template <int BLOCKSIZE>
+__global__ void c_GEMM(int M, int N, int K, float alpha,
+                       const float* A, const float* B,
+                       float beta, float* C)
+{
+    int row = blockIdx.y * BLOCKSIZE + threadIdx.y;
+    int col = blockIdx.x * BLOCKSIZE + threadIdx.x;
 
-__global__ void c_GEMM(int M, int N, int K, float alpha, const float *A, const float *B, float beta, float *C) {
-    int cx = blockIdx.y * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
-    int cy = blockIdx.x * BLOCKSIZE + (threadIdx.y %  BLOCKSIZE);
-
-    if (cx < M && cy < N) {
+    if (row < M && col < N) {
         float val = 0.0f;
 
-        for (int j = 0; j < K; j++) {
-            val += A[cx * K + j] * B[j * N + cy];
+        for (int k = 0; k < K; ++k) {
+            val += A[row * K + k] * B[k * N + col];
         }
-        C[cx * N + cy] = alpha * val + beta * C[cx * N + cy];
-    }
 
-};
+        C[row * N + col] = alpha * val + beta * C[row * N + col];
+    }
+}
+
 
 int main() {
 
