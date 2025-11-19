@@ -13,18 +13,16 @@ __global__ void c_GEMM(int M, int N, int K, float alpha,
                        const float* A, const float* B,
                        float beta, float* C)
 {
-    int row = blockIdx.y * BLOCKSIZE + threadIdx.y;
-    int col = blockIdx.x * BLOCKSIZE + threadIdx.x;
+const int x = blockIdx.x * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
+const int y = blockIdx.y * BLOCKSIZE + (threadIdx.x % BLOCKSIZE);
 
-    if (row < M && col < N) {
-        float val = 0.0f;
-
-        for (int k = 0; k < K; ++k) {
-            val += A[row * K + k] * B[k * N + col];
-        }
-
-        C[row * N + col] = alpha * val + beta * C[row * N + col];
-    }
+if (x < M && y < N) {
+  float tmp = 0.0;
+  for (int i = 0; i < K; ++i) {
+    tmp += A[x * K + i] * B[i * N + y];
+  }
+  C[x * N + y] = alpha * tmp + beta * C[x * N + y];
+}
 }
 
 
