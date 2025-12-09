@@ -23,7 +23,7 @@ Each version is kept separate and benchmarked so you can see the performance pro
 ## Scope of the Repo
 - **Only kernels + benchmarking code**  
 - No architecture explanations  
-- No rewritten theory (refer to Simon’s blog for that)
+- No rewritten theory (refer to [Simon’s blog](https://siboehm.com/articles/22/CUDA-MMM) for that)
 
 This repo exists purely as a **learning-through-reimplementation playground**.
 
