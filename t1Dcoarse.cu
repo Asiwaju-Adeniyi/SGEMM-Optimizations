@@ -48,4 +48,21 @@ const int TM = 8;
 
          A += BK;
          B += BK * N;
+         for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+             
+             float accum = Bs[dotIdx * BN + tCol];
+
+             for (uint resIdx = 0; resIdx < TM; ++resIdx) {
+                 tRes[resIdx] += As[(tRow  * TM + resIdx) * BK + dotIdx] * accum;
+             }
+         }
+
+         __syncthreads();
+     }
+    
+     for (uint resIdx = 0; resIdx < TM; ++resIdx) {
+         C[(tRow * TM + resIdx) * N + tCol] = alpha * tRes[resIdx] + beta * C[(tRow * TM + resIdx) * N + tCol];
+     }
+                                                                                                                            
+}
 
