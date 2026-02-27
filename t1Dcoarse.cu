@@ -39,3 +39,13 @@ const int TM = 8;
      
     const uint inRowB = threadIdx.x / BK;
     const uint inColB = threadIdx.x % BK;
+    
+    float tRes[TM] = {0.0};
+     
+     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+         As[inRowA * BK + inColA] = A[inRowA * K + inColA];
+         Bs[inRowA * BK + inColA] = B[inRowB * N + inColB];
+
+         A += BK;
+         B += BK * N;
+
