@@ -8,63 +8,65 @@
 #define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
 
 
-__global__ void tCoarsen_kernel(int M, int N, int K, const float* A, const float* B, float* C, float alpha, float beta) {
-    
-const int BM = 64;
-const int BN = 64;
-const int BK = 8;                                                                                                                                                                                                                                                                                                                                                                       
-const int TM = 8;
+__global__ void tCoarse1D_kernel(int M, int N, int K, const float* A, const float* B, float* C, float alpha, float beta) {
 
-     const uint cRow = blockIdx.y;
-     const uint cCol = blockIdx.x;
+    const uint BM = 64;
+    const uint BN = 64;
+    const uint BK = 8;
+    const uint TM = 8;
 
-     const uint totalBTresults = BM * BN;
-     const uint numThreadsPerBlock = totalBTresults / TM;
+    const uint cRow = blockIdx.x;
+    const uint cCol = blockIdx.y;
 
-     assert(numThreadsPerBlock == blockDim.x);
+    const uint resultsPerBlock = BM * BN;
+    const uint threadsPerBlock = resultsPerBlock / TM;
 
-     const int tRow = threadIdx.x / BK;
-     const int tCol = threadIdx.x % BK;
+    assert(threadsPerBlock == blockDim.x);
 
-     __shared__ float As[BM * BK];
-     __shared__ float Bs[BK * BN];
+    const uint tRow = threadIdx.x / BN;
+    const uint tCol = threadIdx.x % BN;
 
-     A += cRow * BK * K;
-     B += cCol * BK;
-     C += cRow * BM * N + cCol * BN;
+    __shared__ float sA[BM * BK];
+    __shared__ float sB[BK * BN];
 
-     assert(BM * BK == blockDim.x);
-     assert(BN * BK == blockDim.x);
-     
+    A += cRow * BK * K; 
+    B += cCol * BK;
+    C += cRow * BM * K + cCol * BK;
+
+    assert(BM * BK == blockDim.x);
+    assert(BK * BN == blockDim.x);
+
+    const uint inRowA = threadIdx.x / BK;
     const uint inColA = threadIdx.x % BK;
-    const uint inRowA = threadIdx.x / BK; 
-     
-    const uint inRowB = threadIdx.x / BK;
-    const uint inColB = threadIdx.x % BK;
+
+    const uint inRowB = threadIdx.x / BN;
+    const uint inColB = threadIdx.x % BN;
+
+    float tRes[TM] = {0.0f};
+
+    for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+        sA[inRowA * BK + inColA] = A[inRowA * K + inColA];
+        sB[inRowB * BK + inColB] = B[inRowB * N + inColB];
+        __syncthreads();
+
+        A += BK;
+        B += BK * N;
+
+        for (uint i = 0; i < BK; i++) {
+            float tmp = sB[i * BN + tCol];
+
+            for (uint iRes = 0; iRes < TM; iRes++) {
+                  tRes[iRes] += sA[(tRow * TM + iRes) * BK + i] * tmp;
+            }
+
+        }
+        __syncthreads();
+    }
+
+    for (uint iRes = 0; iRes < TM; iRes++) {
+        C[(tRow * TM  + iRes++) * N + tCol] = alpha * tRes[iRes] + beta * C[(tRow * TM + iRes) * N + tCol];
     
-    float tRes[TM] = {0.0};
-     
-     for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
-         As[inRowA * BK + inColA] = A[inRowA * K + inColA];
-         Bs[inRowB * BK + inColB] = B[inRowB * N + inColB];
-
-         A += BK;
-         B += BK * N;
-
-         for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
-             
-             float accum = Bs[dotIdx * BN + tCol];
-
-             for (uint resIdx = 0; resIdx < TM; ++resIdx) {
-                 tRes[resIdx] += As[(tRow  * TM + resIdx) * BK + dotIdx] * accum;
-             }
-         }
-
-         __syncthreads();
-     }
-    
-     for (uint resIdx = 0; resIdx < TM; ++resIdx) {
-         C[(tRow * TM + resIdx) * N + tCol] = alpha * tRes[resIdx] + beta * C[(tRow * TM + resIdx) * N + tCol];
-     }
+}
+}
                                                                                                                             
 }
