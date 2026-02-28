@@ -15,8 +15,8 @@ const int BN = 64;
 const int BK = 8;                                                                                                                                                                                                                                                                                                                                                                       
 const int TM = 8;
 
-     const uint cRow = threadIdx.y;
-     const uint cCol = threadIdx.x;
+     const uint cRow = blockIdx.y;
+     const uint cCol = blockIdx.x;
 
      const uint totalBTresults = BM * BN;
      const uint numThreadsPerBlock = totalBTresults / TM;
@@ -27,7 +27,7 @@ const int TM = 8;
      const int tCol = threadIdx.x % BK;
 
      __shared__ float As[BM * BK];
-     __shared__ float Bs[BM * BK];
+     __shared__ float Bs[BK * BN];
 
      A += cRow * BK * K;
      B += cCol * BK;
@@ -44,10 +44,11 @@ const int TM = 8;
      
      for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
          As[inRowA * BK + inColA] = A[inRowA * K + inColA];
-         Bs[inRowA * BK + inColA] = B[inRowB * N + inColB];
+         Bs[inRowA * BK + inColB] = B[inRowB * N + inColB];
 
          A += BK;
          B += BK * N;
+
          for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
              
              float accum = Bs[dotIdx * BN + tCol];
@@ -65,4 +66,3 @@ const int TM = 8;
      }
                                                                                                                             
 }
-
