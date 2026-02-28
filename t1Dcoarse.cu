@@ -33,7 +33,9 @@ const int TM = 8;
      B += cCol * BK;
      C += cRow * BM * N + cCol * BN;
 
-
+     assert(BM * BK == blockDim.x);
+     assert(BN * BK == blockDim.x);
+     
     const uint inColA = threadIdx.x % BK;
     const uint inRowA = threadIdx.x / BK; 
      
@@ -44,7 +46,7 @@ const int TM = 8;
      
      for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
          As[inRowA * BK + inColA] = A[inRowA * K + inColA];
-         Bs[inRowA * BK + inColB] = B[inRowB * N + inColB];
+         Bs[inRowB * BK + inColB] = B[inRowB * N + inColB];
 
          A += BK;
          B += BK * N;
