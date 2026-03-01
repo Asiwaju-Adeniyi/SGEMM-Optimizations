@@ -7,8 +7,6 @@
 
 #define CEIL_DIV(M, N) (((M) + (N) - 1) / (N))
 
-
-
 __global__ void tCoarse2D_kernel(int M, int N, int K, const float* A, const float* B, float* C, float alpha, float beta) {
 
     const int BM = 128;
